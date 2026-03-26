@@ -1,14 +1,14 @@
-import { loginController, signupController } from "../controllers/authController.js";
+import { loginHandler, signupHandler } from "../lambdas/auth.js";
 
 export const authRoutes = [
   {
     method: "POST",
     path: "/api/signup",
-    handler: signupController
+    handler: signupHandler
   },
   {
     method: "POST",
     path: "/api/login",
-    handler: loginController
+    handler: loginHandler
   }
 ];

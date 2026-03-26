@@ -1,5 +1,10 @@
 import { authRoutes } from "./authRoutes.js";
-import { createHttpError, readJsonBody, sendJson } from "../utils/http.js";
+import {
+  createHttpError,
+  createLambdaEvent,
+  sendJson,
+  sendLambdaResponse
+} from "../utils/http.js";
 
 const routes = [...authRoutes];
 
@@ -17,12 +22,8 @@ export async function handleRequest({ request, response, requestUrl }) {
     throw createHttpError(404, "Route not found");
   }
 
-  const body = await readJsonBody(request);
+  const event = await createLambdaEvent({ request, requestUrl });
+  const lambdaResponse = await matchedRoute.handler(event);
 
-  await matchedRoute.handler({
-    request,
-    response,
-    requestUrl,
-    body
-  });
+  sendLambdaResponse(response, lambdaResponse);
 }
