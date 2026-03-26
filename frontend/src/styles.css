@@ -30,6 +30,10 @@ input {
   font: inherit;
 }
 
+a {
+  text-decoration: none;
+}
+
 button {
   border: 0;
   cursor: pointer;
@@ -148,6 +152,9 @@ h2 {
 
 .primary-button,
 .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 150px;
   padding: 14px 22px;
   border-radius: 999px;
@@ -181,6 +188,7 @@ h2 {
 
 .text-link,
 .inline-link {
+  display: inline-flex;
   padding: 0;
   background: transparent;
   color: var(--accent-strong);
