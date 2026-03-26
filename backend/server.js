@@ -1,21 +1,49 @@
 import http from "node:http";
 import { URL } from "node:url";
 import { helloHandler } from "./src/lambdas/hello.js";
+import { loginHandler, signupHandler } from "./src/lambdas/auth.js";
 
 const PORT = process.env.PORT || 3001;
 
 const routes = {
-  "GET /api/hello": helloHandler
+  "GET /api/hello": helloHandler,
+  "POST /api/signup": signupHandler,
+  "POST /api/login": loginHandler
 };
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type"
   });
   response.end(JSON.stringify(payload));
+}
+
+function readRequestBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+
+    request.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    request.on("end", () => {
+      if (!body) {
+        resolve(undefined);
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(body));
+      } catch (error) {
+        reject(new Error("Request body must be valid JSON"));
+      }
+    });
+
+    request.on("error", reject);
+  });
 }
 
 const server = http.createServer(async (request, response) => {
@@ -24,7 +52,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
     response.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET,OPTIONS",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
     response.end();
@@ -43,10 +71,12 @@ const server = http.createServer(async (request, response) => {
     httpMethod: request.method,
     path: requestUrl.pathname,
     queryStringParameters: Object.fromEntries(requestUrl.searchParams.entries()),
-    headers: request.headers
+    headers: request.headers,
+    body: undefined
   };
 
   try {
+    event.body = await readRequestBody(request);
     const lambdaResponse = await handler(event);
     sendJson(
       response,
@@ -56,8 +86,9 @@ const server = http.createServer(async (request, response) => {
         : lambdaResponse.body
     );
   } catch (error) {
-    sendJson(response, 500, {
-      message: "Lambda execution failed",
+    const statusCode = error.statusCode ?? 500;
+    sendJson(response, statusCode, {
+      message: error.publicMessage || "Lambda execution failed",
       error: error.message
     });
   }
